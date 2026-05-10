@@ -634,17 +634,3 @@ class StringLiteral(Literal):
 
     def __str__(self):
         return f"StringLiteral({self.value!r})"
-
-class Identifier(Expr):
-    """Identifier expression."""
-
-    def __init__(self, name: str, type: Optional["TyCType"] = None):
-        super().__init__()
-        self.name = name
-        self.type = type
-        
-    def accept(self, visitor, o=None):
-        return visitor.visit_identifier(self, o)
-
-    def __str__(self):
-        return f"Identifier({self.name})"
