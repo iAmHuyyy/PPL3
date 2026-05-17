@@ -83,8 +83,10 @@ class Emitter:
         elif is_void_type(in_type):
             return "V"
         elif is_struct_type(in_type):
-            struct_name = in_type.struct_name if hasattr(in_type, 'struct_name') else in_type.struct_name
-            return "L" + struct_name + ";"
+            # Struct values are represented as java.lang.Object[] by codegen.py.
+            # This keeps Assignment 4 self-contained: only TyC.j needs to be assembled,
+            # no extra Jasmin class is required for every struct declaration.
+            return "[Ljava/lang/Object;"
         elif type(in_type) is FunctionType:
             return (
                 "("
@@ -100,32 +102,32 @@ class Emitter:
     def emit_push_iconst(self, in_: Union[int, str], frame) -> str:
         """
         Emit instruction to push integer constant onto operand stack.
-        
+
         Args:
             in_: Integer value or string representation
             frame: Frame object for stack management
-            
+
         Returns:
             Generated JVM instruction string
         """
-        frame.push()
-        if type(in_) is int:
-            i = in_
-            if i >= -1 and i <= 5:
-                return self.jvm.emitICONST(i)
-            elif i >= -128 and i <= 127:
-                return self.jvm.emitBIPUSH(i)
-            elif i >= -32768 and i <= 32767:
-                return self.jvm.emitSIPUSH(i)
-            else:
-                return self.jvm.emitLDC(str(i))
-        elif type(in_) is str:
+        if type(in_) is str:
             if in_ == "true":
-                return self.emit_push_iconst(1, frame)
+                in_ = 1
             elif in_ == "false":
-                return self.emit_push_iconst(0, frame)
+                in_ = 0
             else:
-                return self.emit_push_iconst(int(in_), frame)
+                in_ = int(in_)
+
+        frame.push()
+        i = in_
+        if i >= -1 and i <= 5:
+            return self.jvm.emitICONST(i)
+        elif i >= -128 and i <= 127:
+            return self.jvm.emitBIPUSH(i)
+        elif i >= -32768 and i <= 32767:
+            return self.jvm.emitSIPUSH(i)
+        else:
+            return self.jvm.emitLDC(str(i))
 
     def emit_push_fconst(self, in_: str, frame) -> str:
         """
@@ -495,7 +497,7 @@ class Emitter:
             Generated JVM instruction string
         """
         frame.pop()
-        return self.jvm.emitIFGT(label)
+        return self.jvm.emitIFNE(label)
 
     def emit_if_false(self, label: int, frame) -> str:
         """
@@ -509,7 +511,7 @@ class Emitter:
             Generated JVM instruction string
         """
         frame.pop()
-        return self.jvm.emitIFLE(label)
+        return self.jvm.emitIFEQ(label)
 
     def emit_dup(self, frame) -> str:
         """
